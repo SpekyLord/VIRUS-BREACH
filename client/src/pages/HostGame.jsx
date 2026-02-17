@@ -53,19 +53,23 @@ export default function HostGame() {
     const socket = getSocket();
     socketRef.current = socket;
 
-    // Immediately try to recover state if we have sessionStorage
+    // Get saved room code for recovery (if any)
     const savedRoomCode = sessionStorage.getItem('hostRoomCode');
-    if (savedRoomCode && !stateReceivedRef.current) {
-      socket.emit(HOST_REQUEST_STATE, { roomCode: savedRoomCode });
-    }
 
-    // Auto-request state on reconnect
+    // Auto-request state on reconnect OR initial connect
     const handleReconnect = () => {
-      const savedRoomCode = sessionStorage.getItem('hostRoomCode');
       if (savedRoomCode && !stateReceivedRef.current) {
+        console.log('[HostGame] Requesting state for room:', savedRoomCode);
         socket.emit(HOST_REQUEST_STATE, { roomCode: savedRoomCode });
       }
     };
+
+    // If socket is already connected, try recovery immediately
+    if (socket.connected) {
+      handleReconnect();
+    }
+
+    // Also listen for future connect events
     socket.on('connect', handleReconnect);
 
     const handleStateUpdate = (state) => {

@@ -21,6 +21,9 @@ export default function HostLobby() {
     const socket = getSocket();
     socketRef.current = socket;
 
+    // Clear any old session storage from previous games
+    sessionStorage.removeItem('hostRoomCode');
+
     // Listen for game state updates
     const handleStateUpdate = (state) => {
       setGameState(state);

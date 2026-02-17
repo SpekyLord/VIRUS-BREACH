@@ -63,9 +63,17 @@ export default function PlayerGame() {
       }
 
       if (roomCode && playerName) {
+        console.log('[PlayerGame] Rejoining as:', playerName, 'in room:', roomCode);
         socket.emit(PLAYER_REJOIN, { roomCode, playerName });
       }
     };
+
+    // If socket is already connected, try rejoin immediately
+    if (socket.connected) {
+      handleReconnect();
+    }
+
+    // Also listen for future connect events
     socket.on('connect', handleReconnect);
 
     const handleStateUpdate = (state) => {
