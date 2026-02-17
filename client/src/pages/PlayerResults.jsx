@@ -102,51 +102,21 @@ export default function PlayerResults() {
     );
   }
 
-  // OUTCOMES phase — show results as they arrive
+  // OUTCOMES phase — watch the big screen, don't spoil it on the phone
   if (phase === 'OUTCOMES') {
     return (
-      <div className="min-h-screen p-4 max-w-sm mx-auto w-full">
-        <h2 className="text-2xl font-display font-bold text-cyber-green text-center mb-4">
-          CONSEQUENCES
+      <div className="min-h-screen flex flex-col items-center justify-center p-6">
+        <h2 className="text-2xl font-display font-bold text-cyber-cyan mb-6 text-center">
+          AI IS JUDGING
         </h2>
-
-        {outcomes.length === 0 ? (
-          <div className="text-center text-cyber-text-dim font-mono animate-pulse py-8">
-            Generating outcomes...
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {outcomes.map(({ teamId, outcome }) => {
-              const team = gameState.teams?.find(t => t.id === teamId);
-              const isMyTeam = teamId === myTeamId;
-              const ratingColor = outcome.rating === 'good' ? '#00ff41' : outcome.rating === 'bad' ? '#ff0040' : '#ffdd00';
-              const ratingLabel = outcome.rating === 'good' ? '✓ EFFECTIVE' : outcome.rating === 'bad' ? '✗ INEFFECTIVE' : '~ PARTIAL';
-
-              return (
-                <div
-                  key={teamId}
-                  className={`cyber-card p-4 transition-all ${isMyTeam ? 'border-2' : 'opacity-60'}`}
-                  style={isMyTeam ? { borderColor: team?.virusColor || '#00ff41' } : {}}
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <span
-                      className="font-display font-bold"
-                      style={{ color: team?.virusColor || '#00ff41' }}
-                    >
-                      {team?.virusName || teamId} {isMyTeam ? '(YOU)' : ''}
-                    </span>
-                    <span className="text-xs font-bold font-mono" style={{ color: ratingColor }}>
-                      {ratingLabel}
-                    </span>
-                  </div>
-                  <p className="font-mono text-sm text-cyber-text leading-relaxed">
-                    {outcome.text}
-                  </p>
-                </div>
-              );
-            })}
-          </div>
-        )}
+        <div className="cyber-card p-6 text-center max-w-sm w-full">
+          <p className="text-cyber-green font-display font-bold text-lg mb-3">
+            👀 Watch the big screen!
+          </p>
+          <p className="text-cyber-text-dim font-mono text-sm">
+            The consequences are being revealed...
+          </p>
+        </div>
       </div>
     );
   }
