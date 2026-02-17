@@ -55,9 +55,9 @@ export default function HostLobby() {
     }
   }, [gameState?.roomCode]);
 
-  // Navigate to game when started
+  // Navigate to game when started (but not on stale GAME_OVER state from a previous session)
   useEffect(() => {
-    if (gameState && gameState.phase !== 'LOBBY') {
+    if (gameState && gameState.phase !== 'LOBBY' && gameState.phase !== 'GAME_OVER') {
       navigate('/host/game', { state: { initialGameState: gameState } });
     }
   }, [gameState?.phase, navigate]);

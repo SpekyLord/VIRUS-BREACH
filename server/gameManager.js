@@ -36,6 +36,16 @@ export class GameManager {
   // ─── Room Management ────────────────────────────────────────
 
   createGame(hostSocketId, config = {}) {
+    // Clean up any existing game this host owns (e.g. after "Play Again")
+    for (const [existingCode, existingGame] of this.games) {
+      if (existingGame.hostSocketId === hostSocketId) {
+        this._clearTimer(existingCode);
+        this.games.delete(existingCode);
+        console.log(`Cleaned up old game ${existingCode} for host ${hostSocketId}`);
+        break;
+      }
+    }
+
     const roomCode = this._generateRoomCode();
     const teams = VIRUS_ROSTER.slice(0, MAX_TEAMS).map((virus, i) => ({
       id: `team-${i}`,
