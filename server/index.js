@@ -58,6 +58,15 @@ io.on('connection', (socket) => {
     }
   });
 
+  socket.on(Events.HOST_REQUEST_STATE, ({ roomCode }) => {
+    try {
+      gameManager.requestState(socket.id, roomCode);
+      socket.join(roomCode.toUpperCase());
+    } catch (err) {
+      socket.emit(Events.ERROR, { message: err.message });
+    }
+  });
+
   socket.on(Events.HOST_ASSIGN_TEAM, ({ playerSocketId, teamId }) => {
     try {
       // Convert teamId (e.g., "team-0") to teamIndex (e.g., 0)
@@ -128,6 +137,15 @@ io.on('connection', (socket) => {
       console.error('player-join error:', err.message);
       socket.emit(Events.ERROR, { message: err.message });
       callback?.({ success: false, error: err.message });
+    }
+  });
+
+  socket.on(Events.PLAYER_REJOIN, ({ roomCode, playerName }) => {
+    try {
+      gameManager.playerRejoin(socket.id, roomCode, playerName);
+      socket.join(roomCode.toUpperCase());
+    } catch (err) {
+      socket.emit(Events.ERROR, { message: err.message });
     }
   });
 

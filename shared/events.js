@@ -1,5 +1,6 @@
 // Client → Server events
 export const HOST_CREATE_GAME = 'host:create-game';
+export const HOST_REQUEST_STATE = 'host:request-state';
 export const HOST_ASSIGN_TEAM = 'host:assign-team';
 export const HOST_START_GAME = 'host:start-game';
 export const HOST_NEXT_SCENARIO = 'host:next-scenario';
@@ -8,6 +9,7 @@ export const HOST_REVEAL_WINNER = 'host:reveal-winner';
 export const HOST_END_GAME = 'host:end-game';
 
 export const PLAYER_JOIN = 'player:join';
+export const PLAYER_REJOIN = 'player:rejoin';
 export const PLAYER_SUBMIT_ANSWER = 'player:submit-answer';
 export const PLAYER_TYPING = 'player:typing';
 

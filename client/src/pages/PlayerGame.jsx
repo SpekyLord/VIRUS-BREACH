@@ -8,6 +8,7 @@ import {
   GAME_TIMES_UP,
   PLAYER_SUBMIT_ANSWER,
   PLAYER_TYPING,
+  PLAYER_REJOIN,
 } from '../../../shared/events';
 
 export default function PlayerGame() {
@@ -23,10 +24,49 @@ export default function PlayerGame() {
 
   const socketRef = useRef(null);
   const typingTimeoutRef = useRef(null);
+  const playerNameRef = useRef(location.state?.playerName);
+
+  // Save playerName and roomCode to sessionStorage when we get valid state
+  useEffect(() => {
+    if (gameState?.roomCode && playerNameRef.current) {
+      sessionStorage.setItem('playerRoomCode', gameState.roomCode);
+      sessionStorage.setItem('playerName', playerNameRef.current);
+    }
+  }, [gameState?.roomCode]);
+
+  // Restore playerName from sessionStorage if not in location.state
+  useEffect(() => {
+    if (!playerNameRef.current) {
+      const savedPlayerName = sessionStorage.getItem('playerName');
+      if (savedPlayerName) {
+        playerNameRef.current = savedPlayerName;
+      }
+    }
+  }, []);
 
   useEffect(() => {
     const socket = getSocket();
     socketRef.current = socket;
+
+    // Auto-rejoin on reconnect or page refresh
+    const handleReconnect = () => {
+      let roomCode = gameState?.roomCode;
+      let playerName = playerNameRef.current;
+
+      // Try to get from sessionStorage if not in state
+      if (!roomCode) {
+        roomCode = sessionStorage.getItem('playerRoomCode');
+      }
+      if (!playerName) {
+        playerName = sessionStorage.getItem('playerName');
+        playerNameRef.current = playerName;
+      }
+
+      if (roomCode && playerName) {
+        socket.emit(PLAYER_REJOIN, { roomCode, playerName });
+      }
+    };
+    socket.on('connect', handleReconnect);
 
     const handleStateUpdate = (state) => {
       setGameState(state);
@@ -48,12 +88,13 @@ export default function PlayerGame() {
     socket.on(GAME_TIMES_UP, handleTimesUp);
 
     return () => {
+      socket.off('connect', handleReconnect);
       socket.off(GAME_STATE_UPDATE, handleStateUpdate);
       socket.off(GAME_SCENARIO, handleScenario);
       socket.off(GAME_TIMES_UP, handleTimesUp);
       clearTimeout(typingTimeoutRef.current);
     };
-  }, [navigate]);
+  }, [navigate, gameState?.roomCode]);
 
   // Navigate to results when round ends
   useEffect(() => {

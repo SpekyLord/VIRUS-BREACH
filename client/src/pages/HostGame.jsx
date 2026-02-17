@@ -21,6 +21,7 @@ import {
   HOST_PROCESS_ANSWERS,
   HOST_REVEAL_WINNER,
   HOST_END_GAME,
+  HOST_REQUEST_STATE,
 } from '../../../shared/events';
 
 export default function HostGame() {
@@ -41,9 +42,31 @@ export default function HostGame() {
   const socketRef = useRef(null);
   const stateReceivedRef = useRef(initialState !== null); // True if we got initial state
 
+  // Save room code to sessionStorage when we get valid state
+  useEffect(() => {
+    if (gameState?.roomCode) {
+      sessionStorage.setItem('hostRoomCode', gameState.roomCode);
+    }
+  }, [gameState?.roomCode]);
+
   useEffect(() => {
     const socket = getSocket();
     socketRef.current = socket;
+
+    // Immediately try to recover state if we have sessionStorage
+    const savedRoomCode = sessionStorage.getItem('hostRoomCode');
+    if (savedRoomCode && !stateReceivedRef.current) {
+      socket.emit(HOST_REQUEST_STATE, { roomCode: savedRoomCode });
+    }
+
+    // Auto-request state on reconnect
+    const handleReconnect = () => {
+      const savedRoomCode = sessionStorage.getItem('hostRoomCode');
+      if (savedRoomCode && !stateReceivedRef.current) {
+        socket.emit(HOST_REQUEST_STATE, { roomCode: savedRoomCode });
+      }
+    };
+    socket.on('connect', handleReconnect);
 
     const handleStateUpdate = (state) => {
       setGameState(state);
@@ -109,13 +132,16 @@ export default function HostGame() {
       navigate('/host/scoreboard', { state: { gameOverData: data } });
     };
 
-    // Fallback: if no state received after 3 seconds, navigate back to lobby
+    // Fallback: if no state received, navigate back to lobby
+    // Give more time (5s) if recovering from sessionStorage, otherwise 3s
+    const timeoutDuration = savedRoomCode ? 5000 : 3000;
+
     const timeoutId = setTimeout(() => {
       if (!stateReceivedRef.current) {
         console.warn('[HostGame] No state received, navigating back to lobby');
         navigate('/host');
       }
-    }, 3000);
+    }, timeoutDuration);
 
     socket.on(GAME_STATE_UPDATE, handleStateUpdate);
     socket.on(GAME_SCENARIO, handleScenario);
@@ -131,6 +157,7 @@ export default function HostGame() {
 
     return () => {
       clearTimeout(timeoutId);
+      socket.off('connect', handleReconnect);
       socket.off(GAME_STATE_UPDATE, handleStateUpdate);
       socket.off(GAME_SCENARIO, handleScenario);
       socket.off(GAME_TEAM_SUBMITTED, handleTeamSubmitted);
@@ -185,12 +212,12 @@ export default function HostGame() {
 
   const phase = gameState.phase;
   const assignedTeams = gameState.teams?.filter(t => t.players && t.players.length > 0) || [];
-  const nextRoundNumber = (gameState.currentRound || 0) + 1;
+  const nextRoundNumber = (gameState.currentRound?.number || 0) + 1;
 
   // INTRO phase - Ready for next round
   if (phase === 'INTRO') {
     return (
-      <div className="min-h-screen flex items-center justify-center p-8">
+      <div className="min-h-screen flex items-center justify-center p-8 animate-fade-in">
         <div className="text-center">
           <h1 className="text-5xl font-display font-bold text-cyber-green mb-8">
             READY FOR ROUND {nextRoundNumber}?
@@ -209,7 +236,7 @@ export default function HostGame() {
   // SCENARIO phase - Active gameplay
   if (phase === 'SCENARIO') {
     return (
-      <div className="min-h-screen p-8">
+      <div className="min-h-screen p-8 animate-fade-in">
         <div className="max-w-7xl mx-auto">
           {/* Top: Scenario + Timer */}
           <div className="grid grid-cols-[1fr_auto] gap-8 mb-8">
@@ -255,7 +282,7 @@ export default function HostGame() {
   // REVEAL phase - Show all answers, host controls when to process
   if (phase === 'REVEAL') {
     return (
-      <div className="min-h-screen p-8">
+      <div className="min-h-screen p-8 animate-fade-in">
         <div className="max-w-5xl mx-auto">
           <h1 className="text-4xl font-display font-bold text-cyber-cyan text-center mb-2">
             TIME'S UP — ALL ANSWERS IN
@@ -308,7 +335,7 @@ export default function HostGame() {
     const allShown = shownOutcomeCount >= outcomes.length && outcomes.length > 0;
 
     return (
-      <div className="min-h-screen p-8">
+      <div className="min-h-screen p-8 animate-fade-in">
         <div className="max-w-5xl mx-auto">
           <h1 className="text-4xl font-display font-bold text-cyber-green text-center mb-8">
             CONSEQUENCES
@@ -365,36 +392,50 @@ export default function HostGame() {
   // WINNER phase - Winner announcement + taunts + scoreboard
   if (phase === 'WINNER') {
     return (
-      <div className="min-h-screen p-8">
+      <div className="min-h-screen p-8 animate-fade-in">
         <div className="max-w-6xl mx-auto">
           {/* Winner announcement */}
           {winner && (
-            <div className="text-center mb-8">
-              <h1 className="text-5xl font-display font-bold text-cyber-green mb-4">
-                ROUND WINNER{winner.winnerTeamIds.length > 1 ? 'S' : ''}
-              </h1>
-              <div className="flex justify-center gap-6 mb-4">
-                {winner.winnerTeamIds.map(teamId => {
-                  const team = gameState.teams.find(t => t.id === teamId);
-                  return (
-                    <div
-                      key={teamId}
-                      className="px-8 py-4 border-4 rounded-lg font-display text-3xl font-bold animate-pulse"
-                      style={{
-                        color: team?.virus?.color || '#00ff41',
-                        borderColor: team?.virus?.color || '#00ff41',
-                        boxShadow: `0 0 20px ${team?.virus?.color || '#00ff41'}`,
-                      }}
-                    >
-                      {team?.virus?.name || teamId}
-                    </div>
-                  );
-                })}
-              </div>
-              <p className="text-cyber-text font-mono text-lg italic">
-                {winner.reasoning}
-              </p>
-            </div>
+            <>
+              {winner.winnerTeamIds.length === 0 ? (
+                <div className="cyber-card p-6 text-center border-2 border-yellow-400 mb-8">
+                  <h1 className="text-3xl font-display font-bold text-yellow-400 mb-2">
+                    NO WINNER THIS ROUND
+                  </h1>
+                  <p className="text-cyber-text font-mono">
+                    {winner.reasoning}
+                  </p>
+                </div>
+              ) : (
+                <div className="text-center mb-8">
+                  <h1 className="text-5xl font-display font-bold text-cyber-green mb-4">
+                    ROUND WINNER{winner.winnerTeamIds.length > 1 ? 'S' : ''}
+                  </h1>
+                  <div className="flex justify-center gap-6 mb-4">
+                    {winner.winnerTeamIds.map(teamId => {
+                      const team = gameState.teams.find(t => t.id === teamId);
+                      const color = team?.virus?.color || '#00ff41';
+                      return (
+                        <div
+                          key={teamId}
+                          className="px-8 py-4 border-4 rounded-lg font-display text-3xl font-bold animate-winner-glow"
+                          style={{
+                            color,
+                            borderColor: color,
+                            '--glow-color': color,
+                          }}
+                        >
+                          {team?.virus?.name || teamId}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <p className="text-cyber-text font-mono text-lg italic">
+                    {winner.reasoning}
+                  </p>
+                </div>
+              )}
+            </>
           )}
 
           {/* Virus Taunts */}

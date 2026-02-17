@@ -80,3 +80,31 @@
 .animate-slide-in-left {
   animation: slide-in-left 0.3s ease-out;
 }
+
+@keyframes winner-glow {
+  0%, 100% {
+    box-shadow: 0 0 10px var(--glow-color), 0 0 20px var(--glow-color);
+  }
+  50% {
+    box-shadow: 0 0 30px var(--glow-color), 0 0 60px var(--glow-color);
+  }
+}
+
+.animate-winner-glow {
+  animation: winner-glow 1.5s ease-in-out infinite;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.4s ease-out;
+}

@@ -64,9 +64,9 @@ export default function PlayerJoin() {
   // Navigate to game when it starts
   useEffect(() => {
     if (gameState && gameState.phase !== 'LOBBY') {
-      navigate('/play/game', { state: { initialGameState: gameState } });
+      navigate('/play/game', { state: { initialGameState: gameState, playerName } });
     }
-  }, [gameState?.phase, navigate]);
+  }, [gameState?.phase, navigate, playerName]);
 
   const handleRoomCodeSubmit = (e) => {
     e.preventDefault();

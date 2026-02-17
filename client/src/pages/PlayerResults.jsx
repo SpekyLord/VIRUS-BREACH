@@ -6,6 +6,7 @@ import {
   GAME_OUTCOME,
   GAME_WINNER,
   GAME_VIRUS_TAUNT,
+  PLAYER_REJOIN,
 } from '../../../shared/events';
 
 export default function PlayerResults() {
@@ -18,10 +19,42 @@ export default function PlayerResults() {
   const [taunts, setTaunts] = useState({});
 
   const socketRef = useRef(null);
+  const playerNameRef = useRef(
+    location.state?.initialGameState?.myName || sessionStorage.getItem('playerName')
+  );
+
+  // Save playerName and roomCode to sessionStorage
+  useEffect(() => {
+    if (gameState?.roomCode && gameState?.myName) {
+      sessionStorage.setItem('playerRoomCode', gameState.roomCode);
+      sessionStorage.setItem('playerName', gameState.myName);
+      playerNameRef.current = gameState.myName;
+    }
+  }, [gameState?.roomCode, gameState?.myName]);
 
   useEffect(() => {
     const socket = getSocket();
     socketRef.current = socket;
+
+    // Auto-rejoin on reconnect or page refresh
+    const handleReconnect = () => {
+      let roomCode = gameState?.roomCode;
+      let playerName = playerNameRef.current;
+
+      // Try to get from sessionStorage if not in state
+      if (!roomCode) {
+        roomCode = sessionStorage.getItem('playerRoomCode');
+      }
+      if (!playerName) {
+        playerName = sessionStorage.getItem('playerName');
+        playerNameRef.current = playerName;
+      }
+
+      if (roomCode && playerName) {
+        socket.emit(PLAYER_REJOIN, { roomCode, playerName });
+      }
+    };
+    socket.on('connect', handleReconnect);
 
     const handleStateUpdate = (state) => {
       setGameState(state);
@@ -45,6 +78,7 @@ export default function PlayerResults() {
     socket.on(GAME_VIRUS_TAUNT, handleTaunts);
 
     return () => {
+      socket.off('connect', handleReconnect);
       socket.off(GAME_STATE_UPDATE, handleStateUpdate);
       socket.off(GAME_OUTCOME, handleOutcome);
       socket.off(GAME_WINNER, handleWinner);
@@ -61,7 +95,12 @@ export default function PlayerResults() {
       setOutcomes([]);
       setWinner(null);
       setTaunts({});
-      navigate('/play/game', { state: { initialGameState: gameState } });
+      navigate('/play/game', {
+        state: {
+          initialGameState: gameState,
+          playerName: playerNameRef.current
+        }
+      });
     }
     if (phase === 'GAME_OVER') {
       navigate('/');

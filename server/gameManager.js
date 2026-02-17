@@ -117,6 +117,44 @@ export class GameManager {
     this._emitStateUpdate(game.roomCode);
   }
 
+  playerRejoin(newSocketId, roomCode, playerName) {
+    const game = this.games.get(roomCode?.toUpperCase());
+    if (!game) throw new Error('Room not found');
+
+    // Find existing player by name
+    const oldEntry = Object.entries(game.players).find(
+      ([, p]) => p.name === playerName
+    );
+
+    if (oldEntry) {
+      const [oldSocketId, player] = oldEntry;
+      // Move player record to new socket ID
+      delete game.players[oldSocketId];
+      game.players[newSocketId] = { ...player, connected: true };
+      // Update team's playerId if assigned
+      const team = game.teams.find(t => t.id === player.teamId);
+      if (team) team.playerId = newSocketId;
+      // Update socket mapping
+      this.socketToRoom.delete(oldSocketId);
+      this.socketToRoom.set(newSocketId, game.roomCode);
+    } else {
+      // First-time join (missed original join)
+      game.players[newSocketId] = { name: playerName, teamId: null, connected: true };
+      this.socketToRoom.set(newSocketId, game.roomCode);
+    }
+
+    this._emitStateUpdate(game.roomCode);
+  }
+
+  requestState(newHostSocketId, roomCode) {
+    const game = this.games.get(roomCode?.toUpperCase());
+    if (!game) throw new Error('Room not found');
+    // Update host socket ID to new connection
+    game.hostSocketId = newHostSocketId;
+    this.socketToRoom.set(newHostSocketId, game.roomCode);
+    this._emitStateUpdate(game.roomCode);
+  }
+
   assignTeam(hostSocketId, playerId, teamIndex) {
     const game = this._getGameByHost(hostSocketId);
     if (!game) throw new Error('Game not found');
