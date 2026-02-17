@@ -19,6 +19,7 @@ import {
   GAME_OVER,
   HOST_NEXT_SCENARIO,
   HOST_PROCESS_ANSWERS,
+  HOST_REVEAL_WINNER,
   HOST_END_GAME,
 } from '../../../shared/events';
 
@@ -34,7 +35,6 @@ export default function HostGame() {
   const [allAnswers, setAllAnswers] = useState([]);
   const [outcomes, setOutcomes] = useState([]);
   const [shownOutcomeCount, setShownOutcomeCount] = useState(0);
-  const [readyForWinner, setReadyForWinner] = useState(false);
   const [winner, setWinner] = useState(null);
   const [taunts, setTaunts] = useState({});
 
@@ -57,7 +57,6 @@ export default function HostGame() {
       setAllAnswers([]);
       setOutcomes([]);
       setShownOutcomeCount(0);
-      setReadyForWinner(false);
       setWinner(null);
       setTaunts({});
     };
@@ -301,8 +300,8 @@ export default function HostGame() {
     );
   }
 
-  // OUTCOMES phase (or WINNER phase when outcomes not all shown yet) - one at a time
-  if (phase === 'OUTCOMES' || (phase === 'WINNER' && !readyForWinner)) {
+  // OUTCOMES phase - show outcomes one at a time, host clicks through them
+  if (phase === 'OUTCOMES') {
     const shownOutcomes = outcomes.slice(0, shownOutcomeCount);
     const hasNextQueued = shownOutcomeCount < outcomes.length;
     const allArrived = outcomes.length >= assignedTeams.length;
@@ -347,7 +346,7 @@ export default function HostGame() {
               </button>
             ) : allShown && allArrived ? (
               <button
-                onClick={() => setReadyForWinner(true)}
+                onClick={() => socketRef.current?.emit(HOST_REVEAL_WINNER)}
                 className="cyber-btn-green px-12 py-5 text-2xl font-display font-bold"
               >
                 CONTINUE TO RESULTS

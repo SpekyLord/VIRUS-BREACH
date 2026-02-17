@@ -4,6 +4,7 @@ export const HOST_ASSIGN_TEAM = 'host:assign-team';
 export const HOST_START_GAME = 'host:start-game';
 export const HOST_NEXT_SCENARIO = 'host:next-scenario';
 export const HOST_PROCESS_ANSWERS = 'host:process-answers';
+export const HOST_REVEAL_WINNER = 'host:reveal-winner';
 export const HOST_END_GAME = 'host:end-game';
 
 export const PLAYER_JOIN = 'player:join';

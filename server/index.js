@@ -97,6 +97,15 @@ io.on('connection', (socket) => {
     }
   });
 
+  socket.on(Events.HOST_REVEAL_WINNER, () => {
+    try {
+      gameManager.revealWinner(socket.id);
+    } catch (err) {
+      console.error('reveal-winner error:', err.message);
+      socket.emit(Events.ERROR, { message: err.message });
+    }
+  });
+
   socket.on(Events.HOST_END_GAME, async () => {
     try {
       await gameManager.endGame(socket.id);

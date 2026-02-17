@@ -166,25 +166,35 @@
   - WINNING virus → mocks losing team(s) by name
   - LOSING virus → grudgingly reacts to winner, makes excuses/promises revenge
   - JSON key = the SPEAKING virus's team ID
-- [x] **Outcome hallucination fix** (`server/prompts.js`)
+- [x] **Outcome hallucination fix v1** (`server/prompts.js`)
   - Added "LITERALLY WROTE THIS EXACT RESPONSE" + "Do NOT invent or assume"
   - Explicit gibberish/joke detection → auto-rated "bad" and roasted
-  - Prevents AI from generating a good outcome for a troll/nonsense answer
+- [x] **Outcome hallucination fix v2** (`server/prompts.js`)
+  - Rewrote evaluation logic as STEP 1 / STEP 2 structure to force classification before narration
+  - STEP 1: explicitly classify answer into A (passive/useless) → B (troll) → C (wrong) → D (vague) → E (good)
+  - "Just chill and laugh", "ignore it", casual dismissal → class A → mandatory `"bad"` rating
+  - Model must classify BEFORE generating narrative, preventing charitable misinterpretation
 
 ---
 
-## Phase 9: Scoreboard & Game Over ⬜
+## Phase 9: Scoreboard & Game Over ✅
 > Final scores, AI summaries, and team ratings.
 
-- [ ] Build `HostScoreboard.jsx` — final rankings, AI-generated per-team summaries, cybersecurity ratings
-  - Display final sorted scoreboard
-  - Show AI-generated roast summary per team
-  - Show cybersecurity rating per team (e.g. "Digital Fortress", "Walking Vulnerability")
-  - "Play Again" / return to home button
-- [ ] Player game-over experience — navigates to `/` (home) when `GAME_OVER` phase detected (already wired)
-- [ ] Wire `game:over` event display — `GAME_OVER` event includes `{ finalScores, summaries, roundHistory }`
+- [x] Build `HostScoreboard.jsx` — final rankings, AI-generated per-team summaries, cybersecurity ratings
+  - Teams sorted by points (highest first) with rank labels (1ST, 2ND, 3RD, #4...)
+  - Champion badge + subtle glow on 1st place team
+  - AI roast summary shown in italic per team
+  - Cybersecurity rating badge (color-coded): "Digital Fortress" → "Script Kiddie"
+  - Graceful fallback when no summaries (force-ended game): "Game ended before AI could roast this team"
+  - "No game data" fallback for direct URL navigation
+  - "PLAY AGAIN" button returns to `/host`
+- [x] Wire `/host/scoreboard` route in `App.jsx`
+- [x] Fix `HostGame.jsx` fallback navigate to pass `gameState` (was navigating with no state)
+  - Normal path: `GAME_OVER` event → `handleGameOver(data)` → scoreboard with full AI data
+  - Fallback path: `gameState.phase === 'GAME_OVER'` useEffect → scoreboard with team scores (no summaries)
 
-**Files:** `client/src/pages/HostScoreboard.jsx`
+**Files Created:** `client/src/pages/HostScoreboard.jsx`
+**Files Modified:** `client/src/App.jsx` · `client/src/pages/HostGame.jsx`
 
 ---
 

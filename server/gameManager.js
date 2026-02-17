@@ -413,11 +413,20 @@ export class GameManager {
     await this._pickWinner(roomCode);
   }
 
+  // Host explicitly advances to WINNER phase when ready (after viewing all outcomes)
+  revealWinner(hostSocketId) {
+    const game = this._getGameByHost(hostSocketId);
+    if (!game) throw new Error('Game not found');
+    if (game.phase !== GAME_PHASES.OUTCOMES) throw new Error('Not in OUTCOMES phase');
+    this._transition(game.roomCode, GAME_PHASES.WINNER);
+    this._emitStateUpdate(game.roomCode);
+  }
+
   async _pickWinner(roomCode) {
     const game = this.games.get(roomCode);
     if (!game) return;
 
-    this._transition(roomCode, GAME_PHASES.WINNER);
+    // Stay in OUTCOMES phase — host will call revealWinner() when ready
 
     const assignedTeams = game.teams.filter(t => t.playerId);
 
