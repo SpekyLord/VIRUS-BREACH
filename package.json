@@ -1,0 +1,18 @@
+{
+  "name": "virus-breach",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Real-time multiplayer classroom game for Cybercrime Prevention Act presentation",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
+    "dev:server": "cd server && npm run dev",
+    "dev:client": "cd client && npm run dev",
+    "build": "cd client && npm run build",
+    "start": "cd server && node index.js",
+    "install:all": "npm install && cd server && npm install && cd ../client && npm install"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

@@ -1,0 +1,82 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    background-color: #0a0a0f;
+    color: #e0e0e0;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  ::selection {
+    background-color: rgba(0, 255, 65, 0.3);
+    color: #00ff41;
+  }
+
+  /* Scrollbar styling */
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #0a0a0f;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: rgba(0, 255, 65, 0.3);
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 255, 65, 0.5);
+  }
+}
+
+@layer components {
+  .cyber-card {
+    @apply bg-[rgba(0,255,65,0.05)] border border-[rgba(0,255,65,0.2)] p-4 rounded;
+  }
+
+  .cyber-btn-green {
+    @apply px-6 py-3 border border-cyber-green text-cyber-green
+           hover:bg-cyber-green hover:text-cyber-black
+           transition-colors font-display font-bold cursor-pointer
+           disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-cyber-green;
+  }
+
+  .cyber-btn-cyan {
+    @apply px-6 py-3 border border-cyber-cyan text-cyber-cyan
+           hover:bg-cyber-cyan hover:text-cyber-black
+           transition-colors font-display font-bold cursor-pointer
+           disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-cyber-cyan;
+  }
+
+  .cyber-btn-red {
+    @apply px-6 py-3 border border-cyber-red text-cyber-red
+           hover:bg-cyber-red hover:text-cyber-black
+           transition-colors font-display font-bold cursor-pointer;
+  }
+
+  .cyber-input {
+    @apply w-full bg-transparent border border-[rgba(0,255,65,0.3)]
+           text-cyber-green px-4 py-3 font-mono
+           focus:outline-none focus:border-cyber-green focus:shadow-[0_0_10px_rgba(0,255,65,0.2)]
+           placeholder:text-[rgba(0,255,65,0.3)];
+  }
+}
+
+@keyframes slide-in-left {
+  from {
+    transform: translateX(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-in-left {
+  animation: slide-in-left 0.3s ease-out;
+}
