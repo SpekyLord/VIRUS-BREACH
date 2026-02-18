@@ -163,7 +163,8 @@ TAUNT RULES:
 - LOSING virus → pick ONE winner to grudgingly address by name. Don't list all winners.
 - Do NOT use your own virus name in the taunt — you ARE that virus, you wouldn't say your own name
 - Keep it FUNNY and CLASSROOM-APPROPRIATE — friendly trash talk, not mean-spirited
-- 1-2 sentences max. Reference their answer if it was funny/dumb.
+- 1-2 sentences max. You may riff on what their answer was ABOUT, but NEVER copy or quote it verbatim.
+- The answer snippet is reference only — do NOT paste it into your taunt output.
 
 CRITICAL: The JSON KEY is the SPEAKING virus's team ID. The taunt is directed AT a specific opponent, not at yourself.
 
