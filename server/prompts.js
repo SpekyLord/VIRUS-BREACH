@@ -156,16 +156,22 @@ Generate a short taunt from each virus mascot directed AT THE OTHER TEAM(S).
 TEAMS:
 ${teamsBlock}
 
-TAUNT RULES — each virus speaks IN FIRST PERSON, addressing THE OTHER TEAM directly:
-- WINNING virus → mock and trash-talk the losing team(s) by name (e.g. "Nice try, [LOSER NAME], but...")
-- LOSING virus → grudgingly react to the winning team, make excuses or promise revenge (e.g. "Fine, [WINNER NAME], you got lucky this round...")
-- Keep it FUNNY and CLASSROOM-APPROPRIATE — friendly trash talk, not mean-spirited bullying
-- 1-2 sentences max. Each virus has a slightly different personality.
+TAUNT RULES:
+- Each virus speaks IN FIRST PERSON ("I", "my", "we") — NEVER refer to yourself in third person
+- WINNING virus → pick ONE loser to specifically mock by name. Don't list all losers.
+- LOSING virus → pick ONE winner to grudgingly address by name. Don't list all winners.
+- Do NOT use your own virus name in the taunt — you ARE that virus, you wouldn't say your own name
+- Keep it FUNNY and CLASSROOM-APPROPRIATE — friendly trash talk, not mean-spirited
+- 1-2 sentences max. Reference their answer if it was funny/dumb.
 
-CRITICAL: The JSON KEY is the SPEAKING virus's team ID. The taunt content should address the OTHER team(s) by their virus name.
+CRITICAL: The JSON KEY is the SPEAKING virus's team ID. The taunt is directed AT a specific opponent, not at yourself.
 
-Example for 2 teams where team-0 (TROJAN) won and team-1 (WORM) lost:
-{"team-0": "Is that the best you've got, WORM? My team handed you your lunch and you didn't even see it coming.", "team-1": "Fine, TROJAN. You got lucky this round. Enjoy it while it lasts."}
+Example for 5 teams where RANSOMWARE and SPYWARE won, TROJAN/WORM/MALWARE lost:
+- RANSOMWARE (winner) picks one loser to mock: "Wow WORM, did you really think doing nothing was a plan? Bold strategy."
+- SPYWARE (winner) picks one loser to mock: "TROJAN, I've seen better responses from a captcha. Try harder next round."
+- TROJAN (loser) addresses one winner: "Fine, RANSOMWARE. You got lucky this time. Enjoy it while it lasts."
+- WORM (loser) addresses one winner: "Good job SPYWARE, I guess. Don't expect a repeat."
+- MALWARE (loser) addresses one winner: "RANSOMWARE thinks they're so smart. We'll see about that."
 
 Respond with this exact JSON format:
 {"team-0": "The virus taunt here...", "team-1": "Another taunt..."}`,
