@@ -128,6 +128,7 @@ Compare all teams and pick 1-2 WINNERS based on these criteria (in priority orde
 If ALL responses were bad or no one submitted, return empty winners.
 
 IMPORTANT: Use the EXACT team IDs provided above (e.g., "team-0", "team-1"). Do NOT invent team IDs.
+In the reasoning field, refer to teams by their Team Name (virus name), NOT by team ID.
 
 Respond with this exact JSON format:
 {"winnerTeamIds": ["team-0"], "reasoning": "Brief 1-2 sentence explanation of why this team won."}`,

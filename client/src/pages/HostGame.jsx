@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { getSocket } from '../socket';
+import { useSpeech } from '../hooks/useSpeech';
 import ScenarioCard from '../components/ScenarioCard';
 import Timer from '../components/Timer';
 import OutcomeCard from '../components/OutcomeCard';
@@ -41,6 +42,8 @@ export default function HostGame() {
 
   const socketRef = useRef(null);
   const stateReceivedRef = useRef(initialState !== null); // True if we got initial state
+
+  const { speak, cancel, muted, toggleMute } = useSpeech();
 
   // Save room code to sessionStorage when we get valid state
   useEffect(() => {
@@ -190,6 +193,32 @@ export default function HostGame() {
     }
   }, [gameState?.phase, navigate]);
 
+  // Speak scenario text the moment it arrives (syncs with typewriter on screen)
+  useEffect(() => {
+    if (scenario?.text) speak(scenario.text);
+  }, [scenario?.text]);
+
+  // Speak each outcome as the host reveals it (cancels previous speech automatically)
+  useEffect(() => {
+    if (shownOutcomeCount > 0 && outcomes[shownOutcomeCount - 1]) {
+      const { teamName, outcome } = outcomes[shownOutcomeCount - 1];
+      speak(`${teamName}. ${outcome.text}`);
+    }
+  }, [shownOutcomeCount]);
+
+  // Speak winner announcement — only once phase is actually WINNER
+  useEffect(() => {
+    if (!winner || gameState?.phase !== 'WINNER') return;
+    if (winner.winnerTeamIds.length === 0) {
+      speak('No winner this round.');
+    } else {
+      const names = winner.winnerTeamIds
+        .map(id => gameState?.teams?.find(t => t.id === id)?.virus?.name || id)
+        .join(' and ');
+      speak(`Round winner: ${names}!`);
+    }
+  }, [winner, gameState?.phase]);
+
   const handleStartScenario = () => {
     socketRef.current?.emit(HOST_NEXT_SCENARIO);
   };
@@ -218,10 +247,21 @@ export default function HostGame() {
   const assignedTeams = gameState.teams?.filter(t => t.players && t.players.length > 0) || [];
   const nextRoundNumber = (gameState.currentRound?.number || 0) + 1;
 
+  // Narrator mute toggle — fixed bottom-right, visible on all phases
+  const narratorBtn = (
+    <button
+      onClick={toggleMute}
+      className="fixed bottom-4 right-4 z-50 bg-cyber-bg-card border border-gray-600 hover:border-cyber-cyan px-3 py-2 text-xs font-mono transition-colors rounded"
+    >
+      {muted ? '🔇 MUTED' : '🔊 NARRATOR'}
+    </button>
+  );
+
   // INTRO phase - Ready for next round
   if (phase === 'INTRO') {
     return (
       <div className="min-h-screen flex items-center justify-center p-8 animate-fade-in">
+        {narratorBtn}
         <div className="text-center">
           <h1 className="text-5xl font-display font-bold text-cyber-green mb-8">
             READY FOR ROUND {nextRoundNumber}?
@@ -241,6 +281,7 @@ export default function HostGame() {
   if (phase === 'SCENARIO') {
     return (
       <div className="min-h-screen p-8 animate-fade-in">
+        {narratorBtn}
         <div className="max-w-7xl mx-auto">
           {/* Top: Scenario + Timer */}
           <div className="grid grid-cols-[1fr_auto] gap-8 mb-8">
@@ -287,6 +328,7 @@ export default function HostGame() {
   if (phase === 'REVEAL') {
     return (
       <div className="min-h-screen p-8 animate-fade-in">
+        {narratorBtn}
         <div className="max-w-5xl mx-auto">
           <h1 className="text-4xl font-display font-bold text-cyber-cyan text-center mb-2">
             TIME'S UP — ALL ANSWERS IN
@@ -340,6 +382,7 @@ export default function HostGame() {
 
     return (
       <div className="min-h-screen p-8 animate-fade-in">
+        {narratorBtn}
         <div className="max-w-5xl mx-auto">
           <h1 className="text-4xl font-display font-bold text-cyber-green text-center mb-8">
             CONSEQUENCES
@@ -377,7 +420,7 @@ export default function HostGame() {
               </button>
             ) : allShown && allArrived ? (
               <button
-                onClick={() => socketRef.current?.emit(HOST_REVEAL_WINNER)}
+                onClick={() => { cancel(); socketRef.current?.emit(HOST_REVEAL_WINNER); }}
                 className="cyber-btn-green px-12 py-5 text-2xl font-display font-bold"
               >
                 CONTINUE TO RESULTS
@@ -397,6 +440,7 @@ export default function HostGame() {
   if (phase === 'WINNER') {
     return (
       <div className="min-h-screen p-8 animate-fade-in">
+        {narratorBtn}
         <div className="max-w-6xl mx-auto">
           {/* Winner announcement */}
           {winner && (
