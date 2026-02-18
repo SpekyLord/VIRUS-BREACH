@@ -163,18 +163,31 @@ export async function generateVirusTaunts(teams, winnerIds, roundNumber) {
 
 export async function generateGameSummary(teams, roundHistory) {
   console.log(`[AI] generateGameSummary: ${teams.length} teams, ${roundHistory.length} rounds played`);
+
+  const hardcodedFallback = Object.fromEntries(teams.map(t => [
+    t.teamId,
+    {
+      summary: `${t.virusName} survived the breach with ${t.points} points. The AI narrator has no further comment at this time.`,
+      rating: t.points >= 3 ? 'Digital Fortress' : t.points >= 1 ? 'Needs a Firewall' : 'Walking Vulnerability',
+    },
+  ]));
+
   return _withRetry(async () => {
     const { system, messages } = buildGameSummaryPrompt(teams, roundHistory);
     const raw = await _callGroq(system, messages, 1000);
     const parsed = _parseJSON(raw);
+
+    // Validate that all expected team IDs are keys in the parsed result.
+    // The LLM sometimes uses virus names or other keys instead of team IDs.
+    const missingIds = teams.filter(t => !parsed[t.teamId]);
+    if (missingIds.length > 0) {
+      console.warn(`[AI] generateGameSummary: missing keys ${missingIds.map(t => t.teamId).join(', ')} — remapping by position`);
+      const parsedValues = Object.values(parsed);
+      missingIds.forEach((t, i) => {
+        parsed[t.teamId] = parsedValues[i] || hardcodedFallback[t.teamId];
+      });
+    }
+
     return parsed;
-  }, {
-    ...Object.fromEntries(teams.map(t => [
-      t.teamId,
-      {
-        summary: `${t.virusName} survived the breach with ${t.points} points. The AI narrator has no further comment at this time.`,
-        rating: t.points >= 3 ? 'Digital Fortress' : t.points >= 1 ? 'Needs a Firewall' : 'Walking Vulnerability',
-      },
-    ])),
-  });
+  }, hardcodedFallback);
 }
