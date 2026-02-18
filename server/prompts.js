@@ -85,12 +85,14 @@ C) WRONG APPROACH: Suggests something illegal, harmful, or that makes things wor
 D) VAGUE BUT RIGHT DIRECTION: Mentions reporting or seeking help but gives no specifics (e.g. just "report it", "tell someone"). → Rating: "partial".
 E) GOOD: Mentions a specific authority (PNP Anti-Cybercrime Group, NBI Cybercrime Division, NPC, Facebook report), cites a law, or takes concrete steps to protect the victim. → Rating: "good".
 
-STEP 2 — NARRATE the outcome based on what they literally wrote:
-- A or B or C → Show what actually happens when you do nothing/troll/make it worse. Dark humor, realistic consequences. DO NOT give them credit for actions they did not describe.
-- D → Acknowledge the right instinct but show what was missing. What slipped through the cracks because they were vague?
-- E → Satisfying resolution. Reference the specific RA 10175 section their actions align with.
+STEP 2 — NARRATE the outcome as a story playing out in the scenario world:
+- Write as if you're a narrator describing what ACTUALLY HAPPENED as a result of their choice.
+- Naturally weave in WHAT THEY DID (paraphrased, not quoted word-for-word) so the audience understands WHY this outcome unfolded. E.g. "Choosing to laugh it off, the team..." or "When they flagged it to the PNP Anti-Cybercrime Group..."
+- A or B or C → Narrate the fallout of their inaction/bad move. The victim suffers, the situation escalates. Dark humor, realistic consequences.
+- D → Narrate a partial win — their instinct helped but vagueness left gaps. Something slipped through.
+- E → Narrate a satisfying resolution. Show the specific steps playing out. Weave in the relevant RA 10175 section naturally as part of the story.
 
-2-3 sentences max. Base it ENTIRELY on what they ACTUALLY wrote. Do not invent, assume, or add actions.`}
+2-3 sentences max. Cinematic consequence scene — the audience should understand what the team did AND what happened because of it.`}
 
 Respond with this exact JSON format:
 {"text": "The narrative outcome...", "rating": "good"}`,
