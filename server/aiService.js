@@ -53,11 +53,9 @@ async function _callGroq(system, messages, maxTokens = DEFAULT_MAX_TOKENS) {
 }
 
 function _parseJSON(text) {
-  // Try direct parse first
   try {
     return JSON.parse(text);
   } catch {
-    // Strip markdown code fences if present
     const cleaned = text
       .replace(/^```(?:json)?\s*/i, '')
       .replace(/\s*```\s*$/, '')
@@ -122,7 +120,6 @@ export async function pickWinners(scenarioText, teamOutcomes) {
     const raw = await _callGroq(system, messages);
     const parsed = _parseJSON(raw);
 
-    // Validate that returned team IDs actually exist
     const validIds = teamOutcomes.map(t => t.teamId);
     const winners = (parsed.winnerTeamIds || []).filter(id => validIds.includes(id));
 
@@ -143,7 +140,6 @@ export async function generateVirusTaunts(teams, winnerIds, roundNumber) {
     const parsed = _parseJSON(raw);
     return parsed;
   }, {
-    // Fallback: generic taunts
     ...Object.fromEntries(teams.map(t => [
       t.teamId,
       winnerIds.includes(t.teamId)
@@ -160,7 +156,6 @@ export async function generateGameSummary(teams, roundHistory) {
     const parsed = _parseJSON(raw);
     return parsed;
   }, {
-    // Fallback: generic summaries
     ...Object.fromEntries(teams.map(t => [
       t.teamId,
       {
