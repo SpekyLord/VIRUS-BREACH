@@ -43,6 +43,7 @@ io.on('connection', (socket) => {
   // ─── Host Events ────────────────────────────────────────
 
   socket.on(Events.HOST_CREATE_GAME, (config, callback) => {
+    console.log(`[socket] HOST_CREATE_GAME from ${socket.id}, config:`, config);
     try {
       const roomCode = gameManager.createGame(socket.id, config);
       socket.join(roomCode);
@@ -59,6 +60,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on(Events.HOST_REQUEST_STATE, ({ roomCode }) => {
+    console.log(`[socket] HOST_REQUEST_STATE from ${socket.id}, room: ${roomCode}`);
     try {
       gameManager.requestState(socket.id, roomCode);
       socket.join(roomCode.toUpperCase());
@@ -68,6 +70,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on(Events.HOST_ASSIGN_TEAM, ({ playerSocketId, teamId }) => {
+    console.log(`[socket] HOST_ASSIGN_TEAM from ${socket.id}: player=${playerSocketId} → ${teamId}`);
     try {
       // Convert teamId (e.g., "team-0") to teamIndex (e.g., 0)
       const teamIndex = parseInt(teamId.split('-')[1], 10);
@@ -79,6 +82,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on(Events.HOST_START_GAME, () => {
+    console.log(`[socket] HOST_START_GAME from ${socket.id}`);
     try {
       gameManager.startGame(socket.id);
       console.log('Game started');
@@ -89,6 +93,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on(Events.HOST_NEXT_SCENARIO, async () => {
+    console.log(`[socket] HOST_NEXT_SCENARIO from ${socket.id}`);
     try {
       await gameManager.nextScenario(socket.id);
     } catch (err) {
@@ -98,6 +103,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on(Events.HOST_PROCESS_ANSWERS, async () => {
+    console.log(`[socket] HOST_PROCESS_ANSWERS from ${socket.id}`);
     try {
       await gameManager.processAnswers(socket.id);
     } catch (err) {
@@ -107,6 +113,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on(Events.HOST_REVEAL_WINNER, () => {
+    console.log(`[socket] HOST_REVEAL_WINNER from ${socket.id}`);
     try {
       gameManager.revealWinner(socket.id);
     } catch (err) {
@@ -116,6 +123,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on(Events.HOST_END_GAME, async () => {
+    console.log(`[socket] HOST_END_GAME from ${socket.id}`);
     try {
       await gameManager.endGame(socket.id);
       console.log('Game ended');
@@ -128,6 +136,7 @@ io.on('connection', (socket) => {
   // ─── Player Events ──────────────────────────────────────
 
   socket.on(Events.PLAYER_JOIN, ({ roomCode, playerName }, callback) => {
+    console.log(`[socket] PLAYER_JOIN from ${socket.id}: name="${playerName}", room=${roomCode}`);
     try {
       gameManager.playerJoin(socket.id, roomCode, playerName);
       socket.join(roomCode.toUpperCase());
@@ -141,6 +150,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on(Events.PLAYER_REJOIN, ({ roomCode, playerName }) => {
+    console.log(`[socket] PLAYER_REJOIN from ${socket.id}: name="${playerName}", room=${roomCode}`);
     try {
       gameManager.playerRejoin(socket.id, roomCode, playerName);
       socket.join(roomCode.toUpperCase());
@@ -150,6 +160,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on(Events.PLAYER_SUBMIT_ANSWER, ({ answer }) => {
+    console.log(`[socket] PLAYER_SUBMIT_ANSWER from ${socket.id}: "${(answer || '').slice(0, 60)}"`);
     try {
       gameManager.submitAnswer(socket.id, answer);
     } catch (err) {

@@ -114,6 +114,7 @@ export class GameManager {
     const name = playerName.trim().slice(0, 20);
     game.players[socketId] = { name, teamId: null, connected: true };
     this.socketToRoom.set(socketId, game.roomCode);
+    console.log(`[${game.roomCode}] Player joined: "${name}" (${socketId}) — ${Object.keys(game.players).length} players total`);
     this._emitStateUpdate(game.roomCode);
   }
 
@@ -137,10 +138,12 @@ export class GameManager {
       // Update socket mapping
       this.socketToRoom.delete(oldSocketId);
       this.socketToRoom.set(newSocketId, game.roomCode);
+      console.log(`[${game.roomCode}] Player rejoined: "${playerName}" (${oldSocketId} → ${newSocketId}), team: ${player.teamId || 'none'}`);
     } else {
       // First-time join (missed original join)
       game.players[newSocketId] = { name: playerName, teamId: null, connected: true };
       this.socketToRoom.set(newSocketId, game.roomCode);
+      console.log(`[${game.roomCode}] Player rejoin (new): "${playerName}" (${newSocketId})`);
     }
 
     this._emitStateUpdate(game.roomCode);
@@ -161,6 +164,7 @@ export class GameManager {
     if (game.phase !== GAME_PHASES.LOBBY) throw new Error('Can only assign teams in lobby');
     if (!game.players[playerId]) throw new Error('Player not found');
     if (teamIndex < 0 || teamIndex >= MAX_TEAMS) throw new Error('Invalid team index');
+    console.log(`[${game.roomCode}] Assign: "${game.players[playerId].name}" → team-${teamIndex}`);
 
     const team = game.teams[teamIndex];
 
@@ -211,6 +215,7 @@ export class GameManager {
         const team = game.teams.find(t => t.id === player.teamId);
         if (team) team.connected = false;
       }
+      console.log(`[${roomCode}] Player disconnected: "${player.name}" (${socketId}), team: ${player.teamId || 'none'}`);
     }
 
     this.socketToRoom.delete(socketId);
@@ -229,6 +234,7 @@ export class GameManager {
       throw new Error(`Need at least ${MIN_TEAMS_TO_START} teams with players`);
     }
 
+    console.log(`[${game.roomCode}] Game starting with ${assignedTeams.length} teams: ${assignedTeams.map(t => t.virusName).join(', ')}`);
     this._transition(game.roomCode, GAME_PHASES.INTRO);
     this._emitStateUpdate(game.roomCode);
   }
@@ -252,9 +258,11 @@ export class GameManager {
     game.currentRound.number = game.roundHistory.length + 1;
 
     const difficulty = this._getDifficulty(game.currentRound.number);
+    console.log(`[${game.roomCode}] Round ${game.currentRound.number} — generating scenario (difficulty: ${difficulty})...`);
     const scenario = await AI.generateScenario(difficulty, game.previousScenarioTopics);
     game.currentRound.scenario = scenario;
     game.previousScenarioTopics.push(scenario.topic);
+    console.log(`[${game.roomCode}] Scenario ready (topic: ${scenario.topic}): "${scenario.text.slice(0, 80)}..."`);
 
     this._transition(game.roomCode, GAME_PHASES.SCENARIO);
     this._startTimer(game.roomCode);
@@ -297,6 +305,7 @@ export class GameManager {
         virusName: t.virusName,
         points: t.points,
       }));
+    console.log(`[${game.roomCode}] Game over — generating final summaries for ${teamsForSummary.length} teams...`);
     const summaries = await AI.generateGameSummary(teamsForSummary, game.roundHistory);
 
     this.io.to(game.roomCode).emit(Events.GAME_OVER, {
@@ -326,6 +335,9 @@ export class GameManager {
     const trimmed = (answer || '').trim().slice(0, MAX_ANSWER_LENGTH);
     game.currentRound.answers[teamId] = trimmed || '[No response submitted]';
 
+    const teamName = game.teams.find(t => t.id === teamId)?.virusName || teamId;
+    console.log(`[${game.roomCode}] Answer submitted by "${teamName}": "${(trimmed || '[No response]').slice(0, 60)}"`);
+
     // Notify host that this team submitted
     if (game.hostSocketId) {
       this.io.to(game.hostSocketId).emit(Events.GAME_TEAM_SUBMITTED, { teamId });
@@ -336,6 +348,8 @@ export class GameManager {
     const allSubmitted = assignedTeams.every(
       t => game.currentRound.answers[t.id] !== undefined
     );
+
+    console.log(`[${game.roomCode}] Submissions: ${Object.keys(game.currentRound.answers).length}/${assignedTeams.length}`);
 
     if (allSubmitted) {
       this._allAnswersIn(game.roomCode);
@@ -388,10 +402,17 @@ export class GameManager {
 
     // Auto-submit for teams that haven't answered
     const assignedTeams = game.teams.filter(t => t.playerId);
+    const missing = [];
     for (const team of assignedTeams) {
       if (game.currentRound.answers[team.id] === undefined) {
         game.currentRound.answers[team.id] = '[No response submitted]';
+        missing.push(team.virusName);
       }
+    }
+    if (missing.length > 0) {
+      console.log(`[${roomCode}] Timer expired — auto-submitted for: ${missing.join(', ')}`);
+    } else {
+      console.log(`[${roomCode}] Timer expired — all teams had already submitted`);
     }
 
     this.io.to(roomCode).emit(Events.GAME_TIMES_UP, {});
@@ -404,6 +425,7 @@ export class GameManager {
     const game = this.games.get(roomCode);
     if (!game) return;
 
+    console.log(`[${roomCode}] All answers in — moving to REVEAL`);
     this._clearTimer(roomCode);
     this._transition(roomCode, GAME_PHASES.REVEAL);
 
@@ -435,19 +457,22 @@ export class GameManager {
     const game = this.games.get(roomCode);
     if (!game) return;
 
+    const assignedTeams = game.teams.filter(t => t.playerId);
+    console.log(`[${roomCode}] Processing outcomes for ${assignedTeams.length} teams...`);
+
     this._transition(roomCode, GAME_PHASES.OUTCOMES);
     this._emitStateUpdate(roomCode);
 
-    const assignedTeams = game.teams.filter(t => t.playerId);
-
     for (const team of assignedTeams) {
       const answer = game.currentRound.answers[team.id] || '[No response submitted]';
+      console.log(`[${roomCode}] Generating outcome for "${team.virusName}"...`);
       const outcome = await AI.generateOutcome(
         game.currentRound.scenario.text,
         team.name,
         answer
       );
       game.currentRound.outcomes[team.id] = outcome;
+      console.log(`[${roomCode}] Outcome for "${team.virusName}": rating=${outcome.rating}`);
 
       this.io.to(roomCode).emit(Events.GAME_OUTCOME, {
         teamId: team.id,
@@ -458,6 +483,7 @@ export class GameManager {
       await new Promise(resolve => setTimeout(resolve, OUTCOME_REVEAL_DELAY_MS));
     }
 
+    console.log(`[${roomCode}] All outcomes done — picking winner...`);
     await this._pickWinner(roomCode);
   }
 
@@ -466,6 +492,7 @@ export class GameManager {
     const game = this._getGameByHost(hostSocketId);
     if (!game) throw new Error('Game not found');
     if (game.phase !== GAME_PHASES.OUTCOMES) throw new Error('Not in OUTCOMES phase');
+    console.log(`[${game.roomCode}] Host revealing winner — winners: [${game.currentRound.winners.join(', ')}]`);
     this._transition(game.roomCode, GAME_PHASES.WINNER);
     this._emitStateUpdate(game.roomCode);
   }
@@ -498,7 +525,13 @@ export class GameManager {
     // Award points
     for (const winnerId of winnerTeamIds) {
       const team = game.teams.find(t => t.id === winnerId);
-      if (team) team.points += 1;
+      if (team) {
+        team.points += 1;
+        console.log(`[${roomCode}] Winner: "${team.virusName}" (+1 point, total: ${team.points})`);
+      }
+    }
+    if (winnerTeamIds.length === 0) {
+      console.log(`[${roomCode}] No winner this round`);
     }
 
     this.io.to(roomCode).emit(Events.GAME_WINNER, {
@@ -519,12 +552,14 @@ export class GameManager {
       answer: game.currentRound.answers[t.id] || '',
     }));
 
+    console.log(`[${roomCode}] Generating virus taunts...`);
     const taunts = await AI.generateVirusTaunts(
       teamsForTaunts,
       winnerTeamIds,
       game.currentRound.number
     );
     game.currentRound.taunts = taunts;
+    console.log(`[${roomCode}] Taunts ready, emitting to room`);
     this.io.to(roomCode).emit(Events.GAME_VIRUS_TAUNT, { taunts });
 
     this._emitStateUpdate(roomCode);
@@ -541,6 +576,7 @@ export class GameManager {
       throw new Error(`Invalid transition: ${game.phase} → ${newPhase}`);
     }
 
+    console.log(`[${roomCode}] Phase: ${game.phase} → ${newPhase}`);
     game.phase = newPhase;
   }
 

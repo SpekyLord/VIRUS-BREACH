@@ -39,6 +39,7 @@ async function _callGroq(system, messages, maxTokens = DEFAULT_MAX_TOKENS) {
   const groqClient = getClient();
   if (!groqClient) throw new Error('Groq client not initialized');
 
+  const t0 = Date.now();
   const response = await groqClient.chat.completions.create({
     model: MODEL,
     messages: [
@@ -49,30 +50,37 @@ async function _callGroq(system, messages, maxTokens = DEFAULT_MAX_TOKENS) {
     temperature: DEFAULT_TEMPERATURE,
   });
 
-  return response.choices[0].message.content;
+  const elapsed = Date.now() - t0;
+  const content = response.choices[0].message.content;
+  console.log(`[AI] Groq responded in ${elapsed}ms (${content.length} chars)`);
+  return content;
 }
 
 function _parseJSON(text) {
-  try {
-    return JSON.parse(text);
-  } catch {
-    const cleaned = text
-      .replace(/^```(?:json)?\s*/i, '')
-      .replace(/\s*```\s*$/, '')
-      .trim();
-    return JSON.parse(cleaned);
-  }
+  // Attempt 1: direct parse
+  try { return JSON.parse(text); } catch { /* continue */ }
+
+  // Attempt 2: strip markdown code fences
+  const cleaned = text
+    .replace(/^```(?:json)?\s*/i, '')
+    .replace(/\s*```\s*$/, '')
+    .trim();
+  try { return JSON.parse(cleaned); } catch { /* continue */ }
+
+  // Attempt 3: fix invalid escape sequences (e.g. \' or \: that llama outputs)
+  const sanitized = cleaned.replace(/\\([^"\\\/bfnrtu])/g, '$1');
+  return JSON.parse(sanitized);
 }
 
 async function _withRetry(fn, fallback) {
   try {
     return await fn();
   } catch (err) {
-    console.error('AI call failed, retrying once:', err.message);
+    console.error('[AI] Call failed, retrying once:', err.message);
     try {
       return await fn();
     } catch (retryErr) {
-      console.error('AI retry failed, using fallback:', retryErr.message);
+      console.error('[AI] Retry also failed, using fallback:', retryErr.message);
       return fallback;
     }
   }
@@ -82,6 +90,7 @@ async function _withRetry(fn, fallback) {
 
 export async function generateScenario(difficulty, previousTopics = []) {
   const topic = pickTopic(previousTopics);
+  console.log(`[AI] generateScenario: difficulty=${difficulty}, topic="${topic}"`);
 
   return _withRetry(async () => {
     const { system, messages } = buildScenarioPrompt(difficulty, topic, previousTopics);
@@ -100,6 +109,7 @@ export async function generateScenario(difficulty, previousTopics = []) {
 }
 
 export async function generateOutcome(scenarioText, teamName, teamAnswer) {
+  console.log(`[AI] generateOutcome: team="${teamName}", answer="${teamAnswer.slice(0, 60)}"`);
   return _withRetry(async () => {
     const { system, messages } = buildOutcomePrompt(scenarioText, teamName, teamAnswer);
     const raw = await _callGroq(system, messages);
@@ -115,6 +125,7 @@ export async function generateOutcome(scenarioText, teamName, teamAnswer) {
 }
 
 export async function pickWinners(scenarioText, teamOutcomes) {
+  console.log(`[AI] pickWinners: ${teamOutcomes.length} teams — ratings: ${teamOutcomes.map(t => `${t.teamName}=${t.rating}`).join(', ')}`);
   return _withRetry(async () => {
     const { system, messages } = buildPickWinnerPrompt(scenarioText, teamOutcomes);
     const raw = await _callGroq(system, messages);
@@ -134,6 +145,7 @@ export async function pickWinners(scenarioText, teamOutcomes) {
 }
 
 export async function generateVirusTaunts(teams, winnerIds, roundNumber) {
+  console.log(`[AI] generateVirusTaunts: round=${roundNumber}, winners=[${winnerIds.join(', ')}]`);
   return _withRetry(async () => {
     const { system, messages } = buildVirusTauntPrompt(teams, winnerIds, roundNumber);
     const raw = await _callGroq(system, messages);
@@ -150,6 +162,7 @@ export async function generateVirusTaunts(teams, winnerIds, roundNumber) {
 }
 
 export async function generateGameSummary(teams, roundHistory) {
+  console.log(`[AI] generateGameSummary: ${teams.length} teams, ${roundHistory.length} rounds played`);
   return _withRetry(async () => {
     const { system, messages } = buildGameSummaryPrompt(teams, roundHistory);
     const raw = await _callGroq(system, messages, 1000);
