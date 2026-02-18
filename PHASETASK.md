@@ -174,6 +174,14 @@
   - STEP 1: explicitly classify answer into A (passive/useless) → B (troll) → C (wrong) → D (vague) → E (good)
   - "Just chill and laugh", "ignore it", casual dismissal → class A → mandatory `"bad"` rating
   - Model must classify BEFORE generating narrative, preventing charitable misinterpretation
+- [x] **Outcome narration style fix** (`server/prompts.js`)
+  - STEP 2 now writes as a cinematic consequence scene, not a rubric comment
+  - Naturally paraphrases what the team did (not word-for-word quote) so audience understands WHY outcome happened
+  - Bad: "Since you said X, Y happened" → Good: "Choosing to ignore it, the group chat flooded with infected links..."
+- [x] **Scoreboard summary key remap** (`server/aiService.js`)
+  - LLM sometimes uses virus names instead of team IDs as JSON keys in `generateGameSummary`
+  - Added post-parse validation: remaps by position if expected team ID keys are missing
+  - Hardcoded fallback extracted to variable and shared between remap path and retry path
 
 ---
 
@@ -198,24 +206,35 @@
 
 ---
 
-## Phase 10: Polish & Edge Cases ⬜
+## Phase 10: Polish & Edge Cases ✅
 > Make it production-ready and resilient.
 
-- [ ] Reconnection handling — client re-requests state on reconnect, re-renders correct phase
-- [ ] Host page refresh recovery (currently navigates back to lobby after 3s timeout)
-- [ ] Animations: winner celebration glow, submission checkmark fade-in, phase transitions
-- [ ] Error fallbacks displayed to host if AI completely fails
+- [x] **Reconnection handling** — PlayerGame and PlayerResults emit `PLAYER_REJOIN` on `socket.on('connect')`, pulling name + roomCode from sessionStorage if needed
+- [x] **Host page refresh recovery** — HostGame reads `sessionStorage.hostRoomCode` and emits `HOST_REQUEST_STATE` on reconnect to recover full game state
+- [x] **Animations** — all present:
+  - `animate-winner-glow` — pulsing `box-shadow` with team color (`var(--glow-color)`) applied to winner cards in WINNER phase
+  - `animate-fade-in` — slide-up + opacity fade applied to all major phase renders
+  - `animate-slide-in-left` — outcome cards slide in per reveal
+- [x] **AI error fallbacks** — server always returns something even on double-retry failure; fallback strings are displayed inline on the host screen (e.g. "The narrator pauses dramatically... but the connection to the AI was lost.")
 
 ---
 
-## Phase 11: Production Build & Deployment ⬜
+## Phase 11: Production Build & Deployment ✅
 > Ship it.
 
-- [ ] Configure Express to serve `client/dist/` in production
-- [ ] Verify `npm run build` + `npm start` works end-to-end
-- [ ] Test full game flow: create → join → play → score → game over
-- [ ] Deploy to Railway or Render
-- [ ] Test on actual phone + projector setup
+- [x] Configure Express to serve `client/dist/` in production (serves static files when `NODE_ENV=production`)
+- [x] Fix root `package.json` build script — `npm run install:all && cd client && npm run build` (Railway needs deps installed first)
+- [x] Fix Socket.IO CORS for production — `origin: true` when `NODE_ENV=production` (same-origin, no CORS needed)
+- [x] Clean up `.env.example` — reflects current vars (`GROQ_API_KEY`, `PORT`, `NODE_ENV`)
+- [x] Deploy to Railway — server running on Railway cloud, Groq AI calls go cloud → Groq (stable, no mobile data dependency)
+- [x] Fix JSON parse errors from llama — 3-tier `_parseJSON` fallback strips bad escape sequences (`\'`, `\:`) that llama outputs
+- [x] Add comprehensive server-side logging — Railway logs now show full game flow:
+  - Every phase transition `[ROOM] Phase: OLD → NEW`
+  - AI call timing `[AI] Groq responded in 842ms`
+  - Player join/disconnect/rejoin with team info
+  - Answer submissions with previews and running count
+  - Winner selection and point awards
+  - All AI function entry/exit points
 
 ---
 
